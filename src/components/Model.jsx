@@ -10,13 +10,19 @@ import useDimension from './useDimension';
 import { projects } from './data';
 
 export default function Model({ activeMenu }) {
-
     const [textures, setTextures] = useState([]); // State to store textures
 
     // Load all textures asynchronously when the component mounts
     useEffect(() => {
-        const loadedTextures = projects.map(project => useTexture(project.src));
-        setTextures(loadedTextures); // Update state with loaded textures
+        // Use Promise.all to load all textures concurrently
+        const loadTextures = async () => {
+            const loadedTextures = await Promise.all(
+                projects.map(project => useTexture(project.src))
+            );
+            setTextures(loadedTextures); // Update state with loaded textures
+        };
+
+        loadTextures(); // Call the async function
     }, []);
 
     const plane = useRef();
