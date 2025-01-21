@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { motion } from "framer-motion-3d"
 import { animate, useMotionValue, useTransform } from 'framer-motion'
@@ -11,8 +11,13 @@ import { projects } from './data';
 
 export default function Model({ activeMenu }) {
 
-    // Use useTexture to load all textures at the top level (outside of any callbacks)
-    const textures = projects.map(project => useTexture(project.src));
+    const [textures, setTextures] = useState([]); // State to store textures
+
+    // Load all textures asynchronously when the component mounts
+    useEffect(() => {
+        const loadedTextures = projects.map(project => useTexture(project.src));
+        setTextures(loadedTextures); // Update state with loaded textures
+    }, []);
 
     const plane = useRef();
     const { viewport } = useThree();
@@ -36,7 +41,7 @@ export default function Model({ activeMenu }) {
 
     // Update texture based on activeMenu prop
     useEffect(() => {
-        if (activeMenu != null) {
+        if (activeMenu != null && textures.length > 0) {
             plane.current.material.uniforms.uTexture.value = textures[activeMenu];
             animate(opacity, 1, { duration: 0.2, onUpdate: latest => plane.current.material.uniforms.uAlpha.value = latest });
         } else {
