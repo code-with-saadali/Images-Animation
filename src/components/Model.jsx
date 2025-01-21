@@ -15,10 +15,12 @@ export default function Model({ activeMenu }) {
   const mouse = useMouse();
   const opacity = useMotionValue(0);
 
-  // Use useMemo to call useTexture once, rather than within a callback
-  const textures = useMemo(() => projects.map(project => useTexture(project.src)), []);
+  // Now use useTexture directly in the component, outside of useMemo
+  const textures = projects.map(project => useTexture(project.src));
+  
+  // Fallback in case the texture is not loaded yet
   const { width, height } = textures[0]?.image || { width: 0, height: 0 };
-
+  
   const lerp = (x, y, a) => x * (1 - a) + y * a;
 
   const scale = useAspect(width, height, 0.225);
