@@ -1,5 +1,4 @@
-'use client'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { motion } from "framer-motion-3d"
 import { animate, useMotionValue, useTransform } from 'framer-motion'
@@ -9,87 +8,74 @@ import useMouse from './useMouse';
 import useDimension from './useDimension';
 import { projects } from './data';
 
-export default function Model({ activeMenu }) {
-    const [textures, setTextures] = useState([]); // State to store textures
-
-    // Load all textures asynchronously when the component mounts
-    useEffect(() => {
-        // Use Promise.all to load all textures concurrently
-        const loadTextures = async () => {
-            const loadedTextures = await Promise.all(
-                projects.map(project => useTexture(project.src))
-            );
-            setTextures(loadedTextures); // Update state with loaded textures
-        };
-
-        loadTextures(); // Call the async function
-    }, []);
+export default function Model({activeMenu}) {
 
     const plane = useRef();
     const { viewport } = useThree();
     const dimension = useDimension();
     const mouse = useMouse();
     const opacity = useMotionValue(0);
+    const textures = projects.map(project => useTexture(project.src))
+    const { width, height } = textures[0].image;
+    const lerp = (x, y, a) => x * (1 - a) + y * a
 
-    // Use first texture to determine width and height for scale calculation
-    const { width, height } = textures[0]?.image || { width: 1, height: 1 };
-
-    // Lerp function for smooth mouse movement
-    const lerp = (x, y, a) => x * (1 - a) + y * a;
-
-    // Aspect ratio scale
-    const scale = useAspect(width, height, 0.225);
-
+    const scale = useAspect(
+        width,
+        height,
+        0.225
+    )
     const smoothMouse = {
         x: useMotionValue(0),
         y: useMotionValue(0)
-    };
+    }   
 
-    // Update texture based on activeMenu prop
-    useEffect(() => {
-        if (activeMenu != null && textures.length > 0) {
-            plane.current.material.uniforms.uTexture.value = textures[activeMenu];
-            animate(opacity, 1, { duration: 0.2, onUpdate: latest => plane.current.material.uniforms.uAlpha.value = latest });
-        } else {
-            animate(opacity, 0, { duration: 0.2, onUpdate: latest => plane.current.material.uniforms.uAlpha.value = latest });
+    useEffect( () => {
+        if(activeMenu != null){
+            plane.current.material.uniforms.uTexture.value = textures[activeMenu]
+            animate(opacity, 1, {duration: 0.2, onUpdate: latest => plane.current.material.uniforms.uAlpha.value = latest})
         }
-    }, [activeMenu, textures, opacity]); // Proper dependency array
+        else {
+            animate(opacity, 0, {duration: 0.2, onUpdate: latest => plane.current.material.uniforms.uAlpha.value = latest})
+        }
+    }, [activeMenu])
 
     const uniforms = useRef({
         uDelta: { value: { x: 0, y: 0 } },
         uAmplitude: { value: 0.0005 },
         uTexture: { value: textures[0] },
         uAlpha: { value: 0 }
-    });
+    })
 
-    // Handle mouse frame updates for smooth movement
     useFrame(() => {
-        const { x, y } = mouse;
+        const { x, y } = mouse
         const smoothX = smoothMouse.x.get();
         const smoothY = smoothMouse.y.get();
 
-        if (Math.abs(x - smoothX) > 1) {
-            smoothMouse.x.set(lerp(smoothX, x, 0.1));
-            smoothMouse.y.set(lerp(smoothY, y, 0.1));
+        if(Math.abs(x - smoothX) > 1){
+            smoothMouse.x.set(lerp(smoothX, x, 0.1))
+            smoothMouse.y.set(lerp(smoothY, y, 0.1))
             plane.current.material.uniforms.uDelta.value = {
                 x: x - smoothX,
                 y: -1 * (y - smoothY)
-            };
+            }
         }
-    });
+       
+    })
 
-    const x = useTransform(smoothMouse.x, [0, dimension.width], [-1 * viewport.width / 2, viewport.width / 2]);
-    const y = useTransform(smoothMouse.y, [0, dimension.height], [viewport.height / 2, -1 * viewport.height / 2]);
+    const x = useTransform(smoothMouse.x, [0, dimension.width], [-1 * viewport.width / 2, viewport.width / 2])
+    const y = useTransform(smoothMouse.y, [0, dimension.height], [viewport.height / 2, -1 * viewport.height / 2])
 
     return (
         <motion.mesh position-x={x} position-y={y} ref={plane} scale={scale}>
-            <planeGeometry args={[1, 1, 15, 15]} />
-            <shaderMaterial
+            <planeGeometry args={[1, 1, 15, 15]}/>
+            {/* <meshBasicMaterial wireframe={true} color="red"/> */}
+            <shaderMaterial 
                 vertexShader={vertex}
                 fragmentShader={fragment}
                 uniforms={uniforms.current}
                 transparent={true}
+                // wireframe={true}
             />
         </motion.mesh>
-    );
+    )
 }
