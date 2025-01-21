@@ -1,3 +1,4 @@
+'use client'
 import React, { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { motion } from "framer-motion-3d"
@@ -10,13 +11,14 @@ import { projects } from './data';
 
 export default function Model({activeMenu}) {
 
+    const textures = projects.map(project => useTexture(project.src))
+
     const plane = useRef();
     const { viewport } = useThree();
     const dimension = useDimension();
     const mouse = useMouse();
     const opacity = useMotionValue(0);
-    const textures = projects.map(project => useTexture(project.src))
-    const { width, height } = textures[0].image;
+    const { width, height } = textures[0]?.image || { width: 1, height: 1 };
     const lerp = (x, y, a) => x * (1 - a) + y * a
 
     const scale = useAspect(
@@ -37,7 +39,7 @@ export default function Model({activeMenu}) {
         else {
             animate(opacity, 0, {duration: 0.2, onUpdate: latest => plane.current.material.uniforms.uAlpha.value = latest})
         }
-    }, [activeMenu])
+    }, [activeMenu, textures, opacity])
 
     const uniforms = useRef({
         uDelta: { value: { x: 0, y: 0 } },
